@@ -42,9 +42,7 @@ impl Pretty for Node {
                 nodes.iter().map(|x| x.pretty()),
                 BoxDoc::space().append(BoxDoc::text("~ ")),
             ),
-            Repetition { repeat, node } => {
-                node.pretty().append(repeat.pretty())
-            }
+            Repetition { repeat, node } => node.pretty().append(repeat.pretty()),
             Rulename(s) => BoxDoc::text(escape_rulename(s)),
             Group(n) => BoxDoc::text("(")
                 .append(n.pretty().nest(4).group())
@@ -150,11 +148,8 @@ impl Pretty for (String, PestyRule) {
 }
 
 /// Parse an abnf file. Returns a map of rules.
-pub fn parse_abnf(
-    data: &str,
-) -> Result<IndexMap<String, PestyRule>, std::io::Error> {
-    let make_err =
-        |e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e));
+pub fn parse_abnf(data: &str) -> Result<IndexMap<String, PestyRule>, std::io::Error> {
+    let make_err = |e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e));
     let rules: Vec<Rule> = abnf::rulelist(data).map_err(make_err)?;
     Ok(rules
         .into_iter()
