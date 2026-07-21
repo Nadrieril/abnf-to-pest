@@ -21,7 +21,7 @@
 //!
 //! [pest]: https://pest.rs
 
-use abnf::types::{Node, Repeat, Rule, TerminalValues};
+use abnf::types::{Kind, Node, Repeat, Rule, TerminalValues};
 use indexmap::map::IndexMap;
 use itertools::Itertools;
 use pretty::BoxDoc;
@@ -151,18 +151,44 @@ impl Pretty for (String, PestyRule) {
 pub fn parse_abnf(data: &str) -> Result<IndexMap<String, PestyRule>, std::io::Error> {
     let make_err = |e| std::io::Error::new(std::io::ErrorKind::Other, format!("{}", e));
     let rules: Vec<Rule> = abnf::rulelist(data).map_err(make_err)?;
-    Ok(rules
-        .into_iter()
-        .map(|rule| {
-            (
-                escape_rulename(rule.name()),
-                PestyRule {
-                    silent: false,
-                    node: rule.node().clone(),
-                },
-            )
-        })
-        .collect())
+
+    let mut map: IndexMap<String, PestyRule> = IndexMap::new();
+    for rule in rules {
+        let name = escape_rulename(rule.name());
+        let node = rule.node().clone();
+        let node = if rule.kind() == Kind::Incremental {
+            match map.remove(&name) {
+                Some(existing) => merge_alternatives(existing.node, node),
+                // No previous definition to augment; use this as the initial one.
+                None => node,
+            }
+        } else {
+            node
+        };
+        map.insert(
+            name,
+            PestyRule {
+                silent: false,
+                node,
+            },
+        );
+    }
+    Ok(map)
+}
+
+/// Combine `existing` and `new` into a single alternation, flattening any
+/// `Node::Alternatives` on either side so repeated `=/` chains stay flat.
+fn merge_alternatives(existing: Node, new: Node) -> Node {
+    let mut alts = flatten_alternatives(existing);
+    alts.extend(flatten_alternatives(new));
+    Node::Alternatives(alts)
+}
+
+fn flatten_alternatives(node: Node) -> Vec<Node> {
+    match node {
+        Node::Alternatives(v) => v,
+        other => vec![other],
+    }
 }
 
 pub fn render_rules_to_pest<I>(rules: I) -> BoxDoc<'static>
