@@ -11,6 +11,7 @@ jobs:
     name: Run tests
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         rust:
           - beta
@@ -18,7 +19,7 @@ jobs:
           - 1.76.0  # Minimum supported version
     steps:
       - name: Checkout branch
-        uses: actions/checkout@master
+        uses: actions/checkout@v5
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@master
         with:
@@ -30,12 +31,13 @@ jobs:
     name: Run tests on windows
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         rust:
           - stable
     steps:
       - name: Checkout branch
-        uses: actions/checkout@master
+        uses: actions/checkout@v5
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests
