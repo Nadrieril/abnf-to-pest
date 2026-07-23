@@ -51,8 +51,9 @@ impl Pretty for Node {
                 .append(n.pretty().nest(4).group())
                 .append(BoxDoc::text(")?")),
             String(s) => BoxDoc::text(format!(
-                "^\"{}\"",
-                s.replace("\"", "\\\"").replace("\\", "\\\\")
+                "{}\"{}\"",
+                if s.is_case_sensitive() { "" } else { "^" },
+                s.as_str().replace("\"", "\\\"").replace("\\", "\\\\")
             )),
             TerminalValues(r) => r.pretty(),
             Prose(_) => unimplemented!(),
