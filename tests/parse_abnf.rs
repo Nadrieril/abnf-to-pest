@@ -27,7 +27,9 @@ fn incremental_alternatives_collapse() {
 
     let node = &rules.get("rule").unwrap().node;
     match node {
-        Node::Alternatives(v) => assert_eq!(v.len(), 4, "expected flat alternatives, got {:?}", node),
+        Node::Alternatives(v) => {
+            assert_eq!(v.len(), 4, "expected flat alternatives, got {:?}", node)
+        }
         _ => panic!("expected an alternation, got {:?}", node),
     }
     assert_eq!(rendered_single(&rules, "rule"), "rule = { A | B | C | D }");
