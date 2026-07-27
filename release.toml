@@ -1,6 +1,6 @@
 push = false
 publish = true
-allow-branch = ["master"]
+allow-branch = ["main"]
 dependent-version = "upgrade"
 pre-release-commit-message = "release: bump versions"
 
