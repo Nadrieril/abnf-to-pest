@@ -25,6 +25,10 @@ use abnf::types::{Kind, Node, Repeat, Rule, TerminalValues};
 use indexmap::map::IndexMap;
 use itertools::Itertools;
 use pretty::BoxDoc;
+use std::collections::HashSet;
+
+mod core_rules;
+pub use core_rules::abnf_core_rules;
 
 trait Pretty {
     fn pretty(&self) -> BoxDoc<'static>;
@@ -196,6 +200,36 @@ pub fn render_rules_to_pest<I>(rules: I) -> BoxDoc<'static>
 where
     I: IntoIterator<Item = (String, PestyRule)>,
 {
-    let pretty_rules = rules.into_iter().map(|x| x.pretty());
+    let rules: Vec<(String, PestyRule)> = rules.into_iter().collect();
+    let mut referenced: HashSet<String> = HashSet::new();
+    for (_, rule) in &rules {
+        collect_rulenames(&rule.node, &mut referenced);
+    }
+    let defined: HashSet<String> = rules.iter().map(|(name, _)| name.clone()).collect();
+    let core_extras = core_rules::referenced_core_rules(&referenced, &defined);
+
+    let pretty_rules = rules
+        .into_iter()
+        .chain(core_extras.into_iter())
+        .map(|x| x.pretty());
     BoxDoc::intersperse(pretty_rules, BoxDoc::hardline())
+}
+
+/// Collect every rulename referenced within `node`, escaped as a pest rule
+/// identifier. Needed to detect which core rules a grammar actually uses.
+pub(crate) fn collect_rulenames(node: &Node, out: &mut HashSet<String>) {
+    use Node::*;
+    match node {
+        Rulename(s) => {
+            out.insert(escape_rulename(s));
+        }
+        Alternatives(v) | Concatenation(v) => {
+            for n in v {
+                collect_rulenames(n, out);
+            }
+        }
+        Repetition { node, .. } => collect_rulenames(node, out),
+        Group(n) | Optional(n) => collect_rulenames(n, out),
+        String(_) | TerminalValues(_) | Prose(_) => {}
+    }
 }
